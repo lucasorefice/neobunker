@@ -15,8 +15,10 @@ export function randomSuffix(bytes = 3): string {
   return randomBytes(bytes).toString("hex"); // e.g. 6 hex chars
 }
 
-// A fresh candidate broadcast name like "alice-7f3a9c". Single path segment so
-// it maps cleanly to /watch/<name> and /publish?name=<name>.
+// A fresh candidate broadcast name like "alice-7f3a9c.hang". Single path segment
+// so it maps cleanly to /watch/<name> and /publish?name=<name>. The `.hang`
+// suffix declares the catalog format explicitly, which the @moq client
+// recommends (otherwise it warns and probes the format).
 export function candidateBroadcastName(email: string): string {
-  return `${slugifyEmail(email)}-${randomSuffix()}`;
+  return `${slugifyEmail(email)}-${randomSuffix()}.hang`;
 }
