@@ -49,7 +49,11 @@ export default function Home() {
           <a href="/publish" className="text-neutral-300 underline hover:text-white">
             Broadcast from your webcam
           </a>{" "}
-          to test it end to end.
+          to test it end to end, or{" "}
+          <a href="/dashboard" className="text-neutral-300 underline hover:text-white">
+            sign in
+          </a>{" "}
+          to manage your stream.
         </p>
 
         <p className="mt-10 font-mono text-xs text-neutral-600">relay: {RELAY_URL}</p>
