@@ -10,6 +10,7 @@ type MoqWatchAttributes = {
   muted?: boolean;
   volume?: number | string;
   visible?: string;
+  reload?: boolean;
   latency?: string;
   "catalog-format"?: string;
 };

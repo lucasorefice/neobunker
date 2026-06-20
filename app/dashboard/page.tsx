@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { streams } from "@/lib/schema";
 import { RELAY_URL } from "@/lib/relay";
 import { logout } from "../auth-actions";
+import { PresenceBadge } from "../presence-badge";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -36,7 +37,10 @@ export default async function DashboardPage() {
 
       {stream ? (
         <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-900/50 p-5">
-          <h2 className="text-lg font-medium">{stream.title}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-medium">{stream.title}</h2>
+            <PresenceBadge name={stream.broadcastName} />
+          </div>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-neutral-500">Broadcast name</dt>

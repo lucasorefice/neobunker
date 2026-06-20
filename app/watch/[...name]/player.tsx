@@ -18,6 +18,7 @@ export default function Player({ name }: { name: string }) {
         <moq-watch
           url={RELAY_URL}
           name={name}
+          reload
           className="block aspect-video w-full overflow-hidden rounded-xl bg-black"
         >
           <canvas className="h-full w-full" />
