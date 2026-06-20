@@ -1,5 +1,6 @@
 import Link from "next/link";
 import WatchClient from "./watch-client";
+import { PresenceBadge } from "@/app/presence-badge";
 import { RELAY_URL } from "@/lib/relay";
 
 // Catch-all segment: MoQ broadcast names are slash-paths (e.g. "room/alice.hang"),
@@ -19,7 +20,10 @@ export default async function WatchPage({
           <Link href="/" className="text-sm text-neutral-400 hover:text-neutral-200">
             ← neobunker
           </Link>
-          <h1 className="mt-1 font-mono text-lg">{broadcastName}</h1>
+          <div className="mt-1 flex items-center gap-3">
+            <h1 className="font-mono text-lg">{broadcastName}</h1>
+            <PresenceBadge name={broadcastName} />
+          </div>
         </div>
         <p className="text-right font-mono text-xs text-neutral-500">{RELAY_URL}</p>
       </div>
