@@ -11,6 +11,18 @@ Two planes, kept strictly separate:
 
 See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the phased build plan.
 
+## Running
+
+```bash
+npm install
+npm run dev   # http://localhost:3000
+```
+
+Open `/publish` (allow camera) in one tab and `/watch/room/alice.hang` in
+another to test broadcaster → viewer end to end. By default it uses the public
+test relay (`cdn.moq.dev/anon`); to run your own, see
+[deploy/README.md](deploy/README.md) and set `NEXT_PUBLIC_RELAY_URL`.
+
 ## Stack
 
 - **Frontend + backend:** Next.js (App Router, TypeScript)

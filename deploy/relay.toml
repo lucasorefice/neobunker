@@ -1,0 +1,39 @@
+# moq-relay — Phase 1 (self-hosted, anonymous) config for neobunker.
+#
+# Mirrors the public test relay (cdn.moq.dev/anon): anonymous publish AND
+# subscribe under the `anon/**` prefix, no tokens. Phase 3 replaces this with a
+# JWK signing key + scoped publish tokens (see ../IMPLEMENTATION_PLAN.md).
+#
+# Modeled on the upstream packaged default and prod example:
+#   https://github.com/moq-dev/moq/blob/main/packaging/moq-relay/relay.toml
+#   https://github.com/moq-dev/moq/blob/main/demo/relay/prod.toml
+
+[log]
+level = "info"
+
+[server]
+# QUIC / WebTransport on UDP:443 (the default WebTransport port).
+listen = "[::]:443"
+
+[server.tls]
+# Real certificate + key (e.g. Let's Encrypt). Mounted read-only from ./certs.
+# QUIC REQUIRES a valid TLS cert — see README.md for issuance.
+cert = "/etc/moq-relay/certs/cert.pem"
+key = "/etc/moq-relay/certs/key.pem"
+
+[web.https]
+# HTTPS + WebSocket (WSS) fallback on TCP:443, sharing the same certificate.
+# Also serves `GET /certificate.sha256` for debugging.
+listen = "[::]:443"
+cert = "/etc/moq-relay/certs/cert.pem"
+key = "/etc/moq-relay/certs/key.pem"
+
+[auth]
+# Phase 1: keyless anonymous access (publish + subscribe) under the `anon`
+# prefix only. Clients connect to https://<your-domain>/anon — exactly like
+# Phase 0's cdn.moq.dev/anon.
+#
+# SECURITY: anyone can publish to anon/** in this mode (same as the public test
+# relay). Phase 3 swaps this for `key = "...root.jwk"` + a scoped [auth.public]
+# so only your authenticated broadcaster can publish.
+public = "anon"
