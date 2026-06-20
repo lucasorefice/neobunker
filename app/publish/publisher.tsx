@@ -6,16 +6,16 @@
 import "@moq/publish/element";
 import "@moq/publish/ui";
 
-import { RELAY_URL } from "@/lib/relay";
-
-export default function Publisher({ name }: { name: string }) {
+// `url` is computed server-side: plain relay URL in anon mode, or the relay root
+// carrying a ?jwt= publish token in JWT mode.
+export default function Publisher({ url, name }: { url: string; name: string }) {
   return (
     <div className="mx-auto w-full max-w-2xl">
       {/* <moq-publish-ui> renders the source picker + publish controls.
           The <video muted autoplay> child shows the local preview. */}
       <moq-publish-ui className="block">
         <moq-publish
-          url={RELAY_URL}
+          url={url}
           name={name}
           source="camera"
           className="block aspect-video w-full overflow-hidden rounded-xl bg-black"

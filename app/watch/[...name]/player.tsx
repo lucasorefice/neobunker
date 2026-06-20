@@ -7,16 +7,16 @@
 import "@moq/watch/element";
 import "@moq/watch/ui";
 
-import { RELAY_URL } from "@/lib/relay";
-
-export default function Player({ name }: { name: string }) {
+// `url` is computed server-side: plain relay URL in anon mode, or the relay root
+// carrying a ?jwt= subscribe token in JWT mode.
+export default function Player({ url, name }: { url: string; name: string }) {
   return (
     <div className="mx-auto w-full max-w-5xl">
       {/* <moq-watch-ui> overlays controls on top of <moq-watch>. The <canvas>
           child is required — the element renders decoded video into it. */}
       <moq-watch-ui className="block">
         <moq-watch
-          url={RELAY_URL}
+          url={url}
           name={name}
           reload
           className="block aspect-video w-full overflow-hidden rounded-xl bg-black"

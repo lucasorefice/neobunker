@@ -9,6 +9,12 @@ const Publisher = dynamic(() => import("./publisher"), {
   ),
 });
 
-export default function PublishClient({ name }: { name: string }) {
-  return <Publisher name={name} />;
+export default function PublishClient({
+  url,
+  name,
+}: {
+  url: string;
+  name: string;
+}) {
+  return <Publisher url={url} name={name} />;
 }

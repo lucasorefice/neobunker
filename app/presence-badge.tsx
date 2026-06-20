@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RELAY_URL } from "@/lib/relay";
 
 type Status = "connecting" | "offline" | "loading" | "live";
 
@@ -9,11 +8,15 @@ type Status = "connecting" | "offline" | "loading" | "live";
 // A lightweight @moq Broadcast subscribes to announcements for `name` and exposes
 // a reactive status signal we mirror into React state. The @moq import is
 // deferred to the browser (WebTransport/WebCodecs don't exist on the server).
+// `url` is computed server-side and carries the relay's ?jwt= subscribe token in
+// JWT mode (plain relay URL in anon mode).
 export function PresenceBadge({
   name,
+  url,
   className,
 }: {
   name: string;
+  url: string;
   className?: string;
 }) {
   const [status, setStatus] = useState<Status>("connecting");
@@ -29,7 +32,7 @@ export function PresenceBadge({
       if (cancelled) return;
 
       const conn = new Net.Connection.Reload({
-        url: new URL(RELAY_URL),
+        url: new URL(url),
         enabled: true,
       });
       const bc = new Broadcast({
@@ -58,7 +61,7 @@ export function PresenceBadge({
         // best-effort teardown
       }
     };
-  }, [name]);
+  }, [name, url]);
 
   const live = status === "live";
   const connecting = status === "connecting" || status === "loading";

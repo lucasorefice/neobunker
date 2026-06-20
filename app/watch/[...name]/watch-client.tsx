@@ -13,6 +13,12 @@ const Player = dynamic(() => import("./player"), {
   ),
 });
 
-export default function WatchClient({ name }: { name: string }) {
-  return <Player name={name} />;
+export default function WatchClient({
+  url,
+  name,
+}: {
+  url: string;
+  name: string;
+}) {
+  return <Player url={url} name={name} />;
 }
