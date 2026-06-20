@@ -1,17 +1,38 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import PublishClient from "./publish-client";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { streams } from "@/lib/schema";
 import { DEFAULT_BROADCAST_NAME, RELAY_URL } from "@/lib/relay";
+import { isJwtMode, publishRelayUrl } from "@/lib/relay-token";
 
-// Phase 0 stand-in for OBS: broadcast the webcam straight from the browser so
-// the watch page has something live to render. Replaced by the OBS plugin in
-// Phase 4. ?name=room/bob.hang overrides the broadcast name.
+// Phase 0 stand-in for OBS: broadcast the webcam from the browser.
+// - Anon mode: any ?name works (handy for quick tests).
+// - JWT mode (RELAY_JWT_SECRET set): only the authed broadcaster may publish,
+//   and only their own stream — they get a publish token scoped to it.
 export default async function PublishPage({
   searchParams,
 }: {
   searchParams: Promise<{ name?: string }>;
 }) {
   const { name } = await searchParams;
-  const broadcastName = name?.trim() || DEFAULT_BROADCAST_NAME;
+
+  let broadcastName: string;
+  if (isJwtMode()) {
+    const session = await auth();
+    if (!session?.user?.id) redirect("/login");
+    const stream = await db.query.streams.findFirst({
+      where: eq(streams.ownerUserId, session.user.id),
+    });
+    if (!stream) redirect("/dashboard");
+    broadcastName = stream.broadcastName;
+  } else {
+    broadcastName = name?.trim() || DEFAULT_BROADCAST_NAME;
+  }
+
+  const url = await publishRelayUrl(broadcastName);
   const watchHref = `/watch/${broadcastName.split("/").map(encodeURIComponent).join("/")}`;
 
   return (
@@ -26,7 +47,7 @@ export default async function PublishPage({
         <p className="text-right font-mono text-xs text-neutral-500">{RELAY_URL}</p>
       </div>
 
-      <PublishClient name={broadcastName} />
+      <PublishClient url={url} name={broadcastName} />
 
       <p className="mx-auto mt-4 w-full max-w-2xl text-sm text-neutral-500">
         Allow camera access, then open the{" "}

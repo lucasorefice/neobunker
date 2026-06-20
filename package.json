@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@moq/publish": "0.2.15",
+    "@moq/token": "0.2.3",
     "@moq/watch": "0.2.17",
     "drizzle-orm": "0.45.2",
     "next": "16.2.9",

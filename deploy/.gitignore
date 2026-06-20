@@ -1,2 +1,3 @@
-# NEVER commit TLS private keys or issued certificates.
+# NEVER commit TLS private keys, issued certificates, or the JWT signing key.
 certs/
+keys/

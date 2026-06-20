@@ -164,9 +164,40 @@ Identical playback, now through your own relay:
 Unlike the Phase 0 sandbox, a real browser here uses **QUIC** (UDP/443), not the
 WebSocket fallback.
 
+## JWT mode (Phase 3)
+
+`relay.toml` ships in **JWT mode**: every connection needs a token, and the app
+only mints publish tokens for the authenticated stream owner. Set it up:
+
+1. **Generate the shared key** (from the project root):
+
+   ```bash
+   node scripts/gen-relay-key.mjs > deploy/keys/root.jwk
+   ```
+
+   HS256 is symmetric — the same key signs (app) and verifies (relay).
+
+2. **App**: set `RELAY_JWT_SECRET` to the exact contents of `root.jwk` (one
+   line), and point `NEXT_PUBLIC_RELAY_URL` at the relay **origin** (no `/anon`
+   path — tokens connect at the root):
+
+   ```bash
+   NEXT_PUBLIC_RELAY_URL=https://relay.example.com
+   RELAY_JWT_SECRET={"kty":"oct","alg":"HS256","k":"...","kid":"..."}
+   ```
+
+3. **Relay**: `root.jwk` is mounted at `/etc/moq-relay/keys/` (see
+   `docker-compose.yml`); `relay.toml`'s `[auth] key` already points at it.
+   `docker compose up -d` and the relay rejects any connection without a valid
+   token. Clients connect with `?jwt=<token>`; the app appends it automatically.
+
+To stay in the open Phase 1 anon mode instead, swap `[auth] key` for
+`public = "anon"` in `relay.toml` and unset `RELAY_JWT_SECRET`.
+
 ## Security notes
 
-- **Phase 1 publish is open.** `public = "anon"` lets anyone publish to
-  `anon/**` (same as the public test relay). Phase 3 locks publishing behind a
-  JWT signed with `RELAY_JWT_SECRET`.
-- **Never commit `certs/`.** It holds your private key; it's gitignored here.
+- **Anon mode publish is open.** `public = "anon"` lets anyone publish to
+  `anon/**` (same as the public test relay). JWT mode (above) locks publishing
+  behind tokens signed with `RELAY_JWT_SECRET`.
+- **Never commit `certs/` or `keys/`.** They hold your private TLS key and the
+  JWT signing key; both are gitignored here.

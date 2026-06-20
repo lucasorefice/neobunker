@@ -16,3 +16,4 @@ services:
     volumes:
       - ./relay.toml:/etc/moq-relay/relay.toml:ro
       - ./certs:/etc/moq-relay/certs:ro
+      - ./keys:/etc/moq-relay/keys:ro   # root.jwk for JWT mode (Phase 3)

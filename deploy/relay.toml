@@ -29,11 +29,13 @@ cert = "/etc/moq-relay/certs/cert.pem"
 key = "/etc/moq-relay/certs/key.pem"
 
 [auth]
-# Phase 1: keyless anonymous access (publish + subscribe) under the `anon`
-# prefix only. Clients connect to https://<your-domain>/anon — exactly like
-# Phase 0's cdn.moq.dev/anon.
-#
-# SECURITY: anyone can publish to anon/** in this mode (same as the public test
-# relay). Phase 3 swaps this for `key = "...root.jwk"` + a scoped [auth.public]
-# so only your authenticated broadcaster can publish.
-public = "anon"
+# Phase 3 — JWT mode. Verify every token with this key. Generate it with the
+# app's `node scripts/gen-relay-key.mjs > root.jwk`, place root.jwk here, and set
+# the SAME JSON as RELAY_JWT_SECRET in the app (HS256 is symmetric — shared key).
+# No anonymous access: clients connect at the relay root with ?jwt=<token>, and
+# the app only mints publish tokens for the authenticated stream owner.
+key = "/etc/moq-relay/keys/root.jwk"
+
+# Phase 1 alternative (keyless anonymous pub+sub under the `anon` prefix, like
+# cdn.moq.dev/anon) — comment out `key` above and uncomment this instead:
+# public = "anon"
