@@ -6,9 +6,15 @@ import { RELAY_URL } from "./relay";
 //
 // Token claims use the moq-token format the relay deserializes (root/put/get;
 // `get`, not `sub`, since `sub` is a reserved JWT claim). Scope:
-//   subscribe -> { root:"", get:<name> }            (watch <name> only, no publish)
-//   publish   -> { root:"", put:<name>, get:<name> } (publish + self-watch <name>)
-// Clients connect at the relay root ("") carrying ?jwt=<token>.
+//   subscribe -> { root:RELAY_NAMESPACE, get:<name> }              (watch <name>, no publish)
+//   publish   -> { root:RELAY_NAMESPACE, put:<name>, get:<name> }  (publish + self-watch)
+// Clients connect at https://<relay>/<RELAY_NAMESPACE>?jwt=<token>.
+//
+// RELAY_NAMESPACE must be a NON-EMPTY path segment: connecting at the bare relay
+// root ("/") makes the relay's WebSocket fallback 404 (it serves WS per named
+// path, like the public relay's /anon). The token `root` must equal the
+// connection path, so they share this constant.
+const RELAY_NAMESPACE = "live";
 
 const TTL_SECONDS = 60 * 60; // 1 hour
 
@@ -28,18 +34,22 @@ function withExpiry(claims: Claims): Claims {
 }
 
 export async function mintSubscribeToken(broadcastName: string): Promise<string> {
-  return sign(signingKey(), withExpiry({ root: "", get: broadcastName }));
+  return sign(
+    signingKey(),
+    withExpiry({ root: RELAY_NAMESPACE, get: broadcastName }),
+  );
 }
 
 export async function mintPublishToken(broadcastName: string): Promise<string> {
   return sign(
     signingKey(),
-    withExpiry({ root: "", put: broadcastName, get: broadcastName }),
+    withExpiry({ root: RELAY_NAMESPACE, put: broadcastName, get: broadcastName }),
   );
 }
 
 function withJwt(token: string): string {
   const url = new URL(RELAY_URL);
+  url.pathname = `/${RELAY_NAMESPACE}`;
   url.searchParams.set("jwt", token);
   return url.toString();
 }
