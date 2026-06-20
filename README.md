@@ -21,7 +21,8 @@ npm run dev   # http://localhost:3000
 Open `/publish` (allow camera) in one tab and `/watch/room/alice.hang` in
 another to test broadcaster → viewer end to end. By default it uses the public
 test relay (`cdn.moq.dev/anon`); to run your own, see
-[deploy/README.md](deploy/README.md) and set `NEXT_PUBLIC_RELAY_URL`.
+[deploy/README.md](deploy/README.md) and set `NEXT_PUBLIC_RELAY_URL`. To stream
+from OBS instead of the browser, see [deploy/obs.md](deploy/obs.md).
 
 ## Accounts & database (Phase 2)
 
