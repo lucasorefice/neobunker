@@ -1,0 +1,18 @@
+# Self-hosted moq-relay for neobunker (Phase 1 — data plane).
+#
+# Run this on a host with a STATIC public IP, DNS pointing at it, and UDP+TCP
+# 443 open in the firewall. The control plane (the Next.js app) stays wherever
+# you deploy it and never sees media bytes. See README.md for the full guide.
+services:
+  moq-relay:
+    # TODO: pin to a released tag instead of :latest before production
+    # (check https://hub.docker.com/r/moqdev/moq-relay/tags).
+    image: moqdev/moq-relay:latest
+    restart: unless-stopped
+    command: ["--file", "/etc/moq-relay/relay.toml"]
+    ports:
+      - "443:443/udp"   # QUIC / WebTransport (the actual media transport)
+      - "443:443/tcp"   # HTTPS + WebSocket fallback + /certificate.sha256
+    volumes:
+      - ./relay.toml:/etc/moq-relay/relay.toml:ro
+      - ./certs:/etc/moq-relay/certs:ro
