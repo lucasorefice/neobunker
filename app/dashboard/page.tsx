@@ -11,6 +11,7 @@ import { logout } from "../auth-actions";
 import { PresenceBadge } from "../presence-badge";
 import { LiveDuration } from "../live-duration";
 import { LiveRecorder } from "../publish/live-recorder";
+import { VodList } from "../vod-list";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -104,6 +105,11 @@ export default async function DashboardPage() {
               </code>
             </div>
           ) : null}
+
+          <div className="mt-5 border-t border-neutral-800 pt-4">
+            <h3 className="text-sm font-medium">Past streams</h3>
+            <VodList streamId={stream.id} />
+          </div>
         </section>
       ) : (
         <p className="mt-8 text-neutral-400">
