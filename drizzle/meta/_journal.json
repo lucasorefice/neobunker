@@ -15,6 +15,13 @@
       "when": 1782033964323,
       "tag": "0001_mysterious_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782035729474,
+      "tag": "0002_black_midnight",
+      "breakpoints": true
     }
   ]
 }
