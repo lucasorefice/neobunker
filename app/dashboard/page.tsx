@@ -8,6 +8,7 @@ import { RELAY_URL } from "@/lib/relay";
 import { isJwtMode, publishRelayUrl, subscribeRelayUrl } from "@/lib/relay-token";
 import { logout } from "../auth-actions";
 import { PresenceBadge } from "../presence-badge";
+import { LiveDuration } from "../live-duration";
 import { LiveRecorder } from "../publish/live-recorder";
 
 export default async function DashboardPage() {
@@ -49,6 +50,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-medium">{stream.title}</h2>
             <PresenceBadge name={stream.broadcastName} url={presenceUrl} />
+            <LiveDuration startedAt={stream.liveStartedAt?.toISOString() ?? null} name={stream.broadcastName} url={presenceUrl} />
           </div>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
