@@ -11,16 +11,17 @@ import {
   persist,
 } from "./lib/chat-store.ts";
 import { validateMessage, computeOffsetMs } from "./lib/chat-core.ts";
+import { parseRange } from "./lib/http-range.ts";
 
 const VOD_DIR = path.join(process.cwd(), "var", "vod");
 
-/** Serve a file from var/vod/ at /vod-file/<basename>. Returns true if handled. */
+/** Serve a file from var/vod/ at /vod-file/<basename>, with Range + caching. */
 async function handleVodFile(req, res) {
   if (!req.url?.startsWith("/vod-file/")) return false;
   const pathname = new URL(req.url, "http://localhost").pathname;
   const file = path.join(VOD_DIR, path.basename(pathname));
   try {
-    await stat(file);
+    const st = await stat(file);
     const EXT_TO_MIME = {
       ".webm": "video/webm",
       ".mp4": "video/mp4",
@@ -29,6 +30,26 @@ async function handleVodFile(req, res) {
     };
     const fileExt = path.extname(file).toLowerCase();
     res.setHeader("content-type", EXT_TO_MIME[fileExt] ?? "application/octet-stream");
+    res.setHeader("accept-ranges", "bytes");
+    res.setHeader("cache-control", "public, max-age=31536000, immutable");
+    res.setHeader("etag", `"${st.size}-${Math.floor(st.mtimeMs)}"`);
+    res.setHeader("last-modified", st.mtime.toUTCString());
+
+    const r = parseRange(req.headers.range, st.size);
+    if (r === "unsatisfiable") {
+      res.statusCode = 416;
+      res.setHeader("content-range", `bytes */${st.size}`);
+      res.end();
+      return true;
+    }
+    if (r) {
+      res.statusCode = 206;
+      res.setHeader("content-range", `bytes ${r.start}-${r.end}/${st.size}`);
+      res.setHeader("content-length", String(r.end - r.start + 1));
+      createReadStream(file, { start: r.start, end: r.end }).pipe(res);
+      return true;
+    }
+    res.setHeader("content-length", String(st.size));
     createReadStream(file).pipe(res);
   } catch {
     res.statusCode = 404;
