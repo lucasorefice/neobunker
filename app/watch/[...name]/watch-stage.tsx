@@ -1,12 +1,13 @@
 "use client";
 
 import WatchClient from "./watch-client";
-import { usePresence } from "@/lib/use-presence";
+import { usePresenceState } from "@/app/presence-context";
 
-// Wraps the player and overlays an offline/connecting card driven by ANNOUNCE
-// presence, so the page shows a real "offline" state instead of a black box.
+// Wraps the player and overlays an offline/connecting card. Status comes from the
+// shared PresenceProvider (the watch page wraps this component in it), so it no
+// longer opens its own relay connection.
 export function WatchStage({ url, name }: { url: string; name: string }) {
-  const { status } = usePresence(name, url);
+  const { status } = usePresenceState();
   const live = status === "live";
   const connecting = status === "connecting" || status === "loading";
 
