@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer } from "drizzle-orm/pg-core";
 
 // A broadcaster account. Credentials auth (email + scrypt-hashed password);
 // sessions are JWT, so no Auth.js adapter tables are needed.
@@ -23,5 +23,27 @@ export const streams = pgTable("streams", {
   liveStartedAt: timestamp("live_started_at", { withTimezone: true }),
 });
 
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  streamId: uuid("stream_id").notNull().references(() => streams.id, { onDelete: "cascade" }),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  recordingUrl: text("recording_url"),
+  recordingDurationMs: integer("recording_duration_ms"),
+  recordingOffsetMs: integer("recording_offset_ms").notNull().default(0),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  displayName: text("display_name").notNull(),
+  body: text("body").notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  offsetMs: integer("offset_ms").notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Stream = typeof streams.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;
