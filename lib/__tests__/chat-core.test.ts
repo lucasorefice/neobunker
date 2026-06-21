@@ -11,6 +11,9 @@ test("rejects empty body", () => {
 test("rejects over-long body", () => {
   expect(validateMessage({ body: "x".repeat(501), displayName: "bob" }).ok).toBe(false);
 });
+test("rejects over-long displayName", () => {
+  expect(validateMessage({ body: "hi", displayName: "x".repeat(41) }).ok).toBe(false);
+});
 test("offset is sentAt minus startedAt in ms", () => {
   const started = new Date("2026-06-21T10:00:00Z");
   const sent = new Date("2026-06-21T10:00:12Z");

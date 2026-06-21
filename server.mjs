@@ -73,17 +73,22 @@ wss.on("connection", async (ws, req) => {
     const v = validateMessage(raw);
     if (!v.ok) return;
     const sentAt = new Date();
-    const stored = await persist({
-      sessionId: session.sessionId,
-      userId: null, // guest; auth wiring is a later enhancement
-      displayName: v.displayName,
-      body: v.body,
-      offsetMs: computeOffsetMs(sentAt, session.startedAt),
-      sentAt,
-    });
-    const payload = JSON.stringify({ type: "msg", message: stored });
-    for (const peer of rooms.get(name) ?? []) {
-      if (peer.readyState === peer.OPEN) peer.send(payload);
+    try {
+      const stored = await persist({
+        sessionId: session.sessionId,
+        userId: null, // guest; auth wiring is a later enhancement
+        displayName: v.displayName,
+        body: v.body,
+        offsetMs: computeOffsetMs(sentAt, session.startedAt),
+        sentAt,
+      });
+      const payload = JSON.stringify({ type: "msg", message: stored });
+      for (const peer of rooms.get(name) ?? []) {
+        if (peer.readyState === peer.OPEN) peer.send(payload);
+      }
+    } catch (err) {
+      console.warn("Failed to persist/broadcast message:", err);
+      return;
     }
   });
 
