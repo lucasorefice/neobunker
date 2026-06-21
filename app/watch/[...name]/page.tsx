@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
-import WatchClient from "./watch-client";
+import { WatchStage } from "./watch-stage";
 import { PresenceBadge } from "@/app/presence-badge";
 import { ViewerCount } from "@/app/viewer-count";
 import { LiveDuration } from "@/app/live-duration";
@@ -41,15 +41,7 @@ export default async function WatchPage({
         <p className="text-right font-mono text-xs text-neutral-500">{RELAY_URL}</p>
       </div>
 
-      <WatchClient url={url} name={broadcastName} />
-
-      <p className="mx-auto mt-4 w-full max-w-5xl text-sm text-neutral-500">
-        Waiting for a live broadcast on this name. Start one from the{" "}
-        <Link href="/publish" className="text-neutral-300 underline hover:text-white">
-          publish page
-        </Link>{" "}
-        (or OBS, once Phase 4 lands).
-      </p>
+      <WatchStage url={url} name={broadcastName} />
     </main>
   );
 }
