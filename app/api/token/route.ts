@@ -7,6 +7,7 @@ import {
   isJwtMode,
   mintPublishToken,
   mintSubscribeToken,
+  mintViewerToken,
 } from "@/lib/relay-token";
 
 // Mints relay JWTs.
@@ -58,8 +59,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ token: await mintPublishToken(name) });
   }
 
+  if (kind === "viewer") {
+    return NextResponse.json({ token: await mintViewerToken(name) });
+  }
+
   return NextResponse.json(
-    { error: "kind must be 'subscribe' or 'publish'" },
+    { error: "kind must be 'subscribe', 'publish', or 'viewer'" },
     { status: 400 },
   );
 }

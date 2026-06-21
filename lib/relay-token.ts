@@ -47,6 +47,17 @@ export async function mintPublishToken(broadcastName: string): Promise<string> {
   );
 }
 
+export async function mintViewerToken(broadcastName: string): Promise<string> {
+  return sign(
+    signingKey(),
+    withExpiry({
+      root: RELAY_NAMESPACE,
+      put: [`${broadcastName}/viewers/`],
+      get: [broadcastName],
+    }),
+  );
+}
+
 function withJwt(token: string): string {
   const url = new URL(RELAY_URL);
   url.pathname = `/${RELAY_NAMESPACE}`;
@@ -64,4 +75,10 @@ export async function subscribeRelayUrl(broadcastName: string): Promise<string> 
 export async function publishRelayUrl(broadcastName: string): Promise<string> {
   if (!isJwtMode()) return RELAY_URL;
   return withJwt(await mintPublishToken(broadcastName));
+}
+
+/** Relay URL a viewer uses to self-announce + count peers under <name>/viewers/. */
+export async function viewerRelayUrl(broadcastName: string): Promise<string> {
+  if (!isJwtMode()) return RELAY_URL;
+  return withJwt(await mintViewerToken(broadcastName));
 }
