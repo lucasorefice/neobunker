@@ -29,7 +29,9 @@ export async function POST(req: Request) {
     .where(and(eq(sessions.id, sessionId), eq(streams.ownerUserId, session.user.id)));
   if (row.length === 0) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const ext = file.type.includes("webm") ? "webm" : "mp4";
+  const ALLOWED_EXTS = new Set(["webm", "mp4", "mkv", "mov"]);
+  const uploadedExt = (file.name.split(".").pop() ?? "").toLowerCase();
+  const ext = ALLOWED_EXTS.has(uploadedExt) ? uploadedExt : "mp4";
   await mkdir(VOD_DIR, { recursive: true });
   await writeFile(path.join(VOD_DIR, `${sessionId}.${ext}`), Buffer.from(await file.arrayBuffer()));
 

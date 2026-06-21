@@ -21,7 +21,14 @@ async function handleVodFile(req, res) {
   const file = path.join(VOD_DIR, path.basename(pathname));
   try {
     await stat(file);
-    res.setHeader("content-type", file.endsWith(".webm") ? "video/webm" : "video/mp4");
+    const EXT_TO_MIME = {
+      ".webm": "video/webm",
+      ".mp4": "video/mp4",
+      ".mkv": "video/x-matroska",
+      ".mov": "video/quicktime",
+    };
+    const fileExt = path.extname(file).toLowerCase();
+    res.setHeader("content-type", EXT_TO_MIME[fileExt] ?? "application/octet-stream");
     createReadStream(file).pipe(res);
   } catch {
     res.statusCode = 404;

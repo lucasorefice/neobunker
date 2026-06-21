@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "sessions_one_open_per_stream" ON "sessions" USING btree ("stream_id") WHERE "sessions"."ended_at" is null;

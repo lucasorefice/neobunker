@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { chatMessages, sessions, streams } from "@/lib/schema";
 
@@ -11,6 +11,7 @@ export async function resolveOpenSession(
   if (!stream) return undefined;
   const open = await db.query.sessions.findFirst({
     where: and(eq(sessions.streamId, stream.id), isNull(sessions.endedAt)),
+    orderBy: desc(sessions.startedAt),
   });
   return open ? { sessionId: open.id, startedAt: open.startedAt } : undefined;
 }
