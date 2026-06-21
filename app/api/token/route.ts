@@ -14,6 +14,8 @@ import {
 //   POST { kind: "subscribe", name }  -> scoped subscribe token (any viewer)
 //   POST { kind: "publish",   name }  -> publish token, ONLY for the authed
 //                                        broadcaster who owns that stream
+//   POST { kind: "viewer",    name }  -> subscribe token for self-announce
+//                                        viewer count (get:[<name>] prefix)
 export async function POST(req: Request) {
   if (!isJwtMode()) {
     return NextResponse.json(

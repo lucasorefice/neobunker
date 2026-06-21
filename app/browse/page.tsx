@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { streams } from "@/lib/schema";
-import { subscribeRelayUrl, viewerRelayUrl } from "@/lib/relay-token";
+import { subscribeRelayUrl } from "@/lib/relay-token";
 import { PresenceBadge } from "@/app/presence-badge";
 import { ViewerCount } from "@/app/viewer-count";
 
@@ -11,7 +11,6 @@ export default async function BrowsePage() {
     all.map(async (s) => ({
       stream: s,
       presenceUrl: await subscribeRelayUrl(s.broadcastName),
-      viewerUrl: await viewerRelayUrl(s.broadcastName),
       href: `/watch/${s.broadcastName.split("/").map(encodeURIComponent).join("/")}`,
     })),
   );
@@ -26,14 +25,14 @@ export default async function BrowsePage() {
         <p className="mt-8 text-neutral-400">No streams yet.</p>
       ) : (
         <ul className="mt-8 space-y-3">
-          {rows.map(({ stream, presenceUrl, viewerUrl, href }) => (
+          {rows.map(({ stream, presenceUrl, href }) => (
             <li key={stream.id} className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
               <div className="flex items-center justify-between gap-3">
                 <Link href={href} className="font-medium hover:underline">
                   {stream.title}
                 </Link>
                 <div className="flex items-center gap-3">
-                  <ViewerCount name={stream.broadcastName} url={viewerUrl} announce={false} />
+                  <ViewerCount name={stream.broadcastName} url={presenceUrl} announce={false} />
                   <PresenceBadge name={stream.broadcastName} url={presenceUrl} />
                 </div>
               </div>
