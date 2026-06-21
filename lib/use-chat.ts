@@ -23,9 +23,16 @@ export function useChat(name: string) {
     ws.onopen = () => setStatus("open");
     ws.onclose = () => setStatus("closed");
     ws.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.type === "offline") setStatus("offline");
-      else if (data.type === "msg") setMessages((prev) => [...prev, data.message]);
+      let data: unknown;
+      try {
+        data = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+      if (!data || typeof data !== "object") return;
+      const msg = data as { type?: string; message?: ChatMessage };
+      if (msg.type === "offline") setStatus("offline");
+      else if (msg.type === "msg" && msg.message) setMessages((prev) => [...prev, msg.message!]);
     };
     return () => ws.close();
   }, [name]);
@@ -38,10 +45,10 @@ export function useChat(name: string) {
   const send = useCallback(
     (body: string) => {
       const ws = wsRef.current;
-      if (!ws || ws.readyState !== ws.OPEN || !nickname.trim() || !body.trim()) return;
+      if (!ws || ws.readyState !== ws.OPEN || status !== "open" || !nickname.trim() || !body.trim()) return;
       ws.send(JSON.stringify({ body, displayName: nickname }));
     },
-    [nickname],
+    [nickname, status],
   );
 
   return { messages, status, send, nickname, setNickname: setNick };

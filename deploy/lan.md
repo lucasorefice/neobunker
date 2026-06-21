@@ -111,25 +111,47 @@ Sanity check from another device (CA installed): `curl https://192.168.1.50:4443
 In the repo on the server:
 
 ```bash
-npm install
+npm install   # tsx and ws are runtime dependencies, already in package.json
 
-# point the player at the LAN relay (anon mode — note https + /anon)
-echo 'NEXT_PUBLIC_RELAY_URL=https://192.168.1.50:4443/anon' > .env.local
+# Write .env.local — the custom server reads this file at startup.
+# Minimum required keys (adjust paths / values for your setup):
+cat > .env.local <<'EOF'
+NEXT_PUBLIC_RELAY_URL=https://192.168.1.50:4443/anon
+DATABASE_URL=postgresql://lucas@127.0.0.1:5544/neobunker
+AUTH_SECRET=<your-auth-secret>
+# TLS: absolute paths to the mkcert cert and key produced in step 1.
+TLS_CERT=/path/to/cert.pem
+TLS_KEY=/path/to/key.pem
+EOF
 
-# serve the app over HTTPS with the mkcert cert, bound to all interfaces
-npx next dev --experimental-https \
-  --experimental-https-cert ./cert.pem \
-  --experimental-https-key  ./key.pem \
-  -H 0.0.0.0 -p 3000
+# Build the Next.js app (required before starting in production mode).
+npm run build
+
+# Start the custom server (chat WebSocket + VOD file serving + HTTPS).
+PORT=3000 npm start
+# npm start runs: NODE_ENV=production tsx --env-file=.env.local server.mjs
 ```
+
+The custom server (`server.mjs`) reads `TLS_CERT` and `TLS_KEY` from the
+environment. When both are set it starts an **HTTPS** listener using those
+files; otherwise it falls back to plain HTTP. It also handles:
+
+- `/chat` — WebSocket room for live and VOD-replay chat.
+- `/vod-file/<basename>` — direct file serving from `var/vod/` (supports
+  `.webm`, `.mp4`, `.mkv`, `.mov`).
+
+All other requests are forwarded to Next.js.
 
 The app is now at **`https://192.168.1.50:3000`**.
 
-> Anon mode needs **no Postgres**: the `/publish` and `/watch` pages don't touch
-> the database. `/dashboard`, `/login`, `/register` do — set up Postgres per the
-> main [README](../README.md#accounts--database-phase-2) only when you want
-> accounts. (`next start` has no built-in HTTPS; for a longer-lived setup put
-> Caddy/nginx in front with the same cert.)
+> **Note:** `npx next dev` or `npx next start` will NOT work for this
+> deployment — they skip `server.mjs` entirely, so `/chat` (WebSocket) and
+> `/vod-file/` are absent and chat + VOD playback silently break. Always use
+> `npm start` (or `npm run dev` for local development), which runs `server.mjs`.
+
+> `/dashboard`, `/login`, `/register`, and chat all require Postgres. Set up
+> Postgres and run migrations per the main [README](../README.md#accounts--database-phase-2)
+> before starting the server if you need those features.
 
 ## 4. Test it
 

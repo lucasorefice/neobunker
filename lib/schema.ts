@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // A broadcaster account. Credentials auth (email + scrypt-hashed password);
 // sessions are JWT, so no Auth.js adapter tables are needed.
@@ -23,15 +24,23 @@ export const streams = pgTable("streams", {
   liveStartedAt: timestamp("live_started_at", { withTimezone: true }),
 });
 
-export const sessions = pgTable("sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  streamId: uuid("stream_id").notNull().references(() => streams.id, { onDelete: "cascade" }),
-  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-  endedAt: timestamp("ended_at", { withTimezone: true }),
-  recordingUrl: text("recording_url"),
-  recordingDurationMs: integer("recording_duration_ms"),
-  recordingOffsetMs: integer("recording_offset_ms").notNull().default(0),
-});
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    streamId: uuid("stream_id").notNull().references(() => streams.id, { onDelete: "cascade" }),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    recordingUrl: text("recording_url"),
+    recordingDurationMs: integer("recording_duration_ms"),
+    recordingOffsetMs: integer("recording_offset_ms").notNull().default(0),
+  },
+  (t) => ({
+    oneOpenPerStream: uniqueIndex("sessions_one_open_per_stream")
+      .on(t.streamId)
+      .where(sql`${t.endedAt} is null`),
+  }),
+);
 
 export const chatMessages = pgTable("chat_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
