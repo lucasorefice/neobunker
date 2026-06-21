@@ -6,7 +6,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { streams } from "@/lib/schema";
 import { DEFAULT_BROADCAST_NAME, RELAY_URL } from "@/lib/relay";
-import { isJwtMode, publishRelayUrl } from "@/lib/relay-token";
+import { isJwtMode, publishRelayUrl, subscribeRelayUrl } from "@/lib/relay-token";
+import { LiveRecorder } from "./live-recorder";
 
 // Phase 0 stand-in for OBS: broadcast the webcam from the browser.
 // - Anon mode: any ?name works (handy for quick tests).
@@ -33,6 +34,7 @@ export default async function PublishPage({
   }
 
   const url = await publishRelayUrl(broadcastName);
+  const presenceUrl = isJwtMode() ? await subscribeRelayUrl(broadcastName) : "";
   const watchHref = `/watch/${broadcastName.split("/").map(encodeURIComponent).join("/")}`;
 
   return (
@@ -48,6 +50,7 @@ export default async function PublishPage({
       </div>
 
       <PublishClient url={url} name={broadcastName} />
+      {isJwtMode() && <LiveRecorder name={broadcastName} url={presenceUrl} />}
 
       <p className="mx-auto mt-4 w-full max-w-2xl text-sm text-neutral-500">
         Allow camera access, then open the{" "}

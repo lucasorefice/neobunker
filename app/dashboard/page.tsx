@@ -8,6 +8,7 @@ import { RELAY_URL } from "@/lib/relay";
 import { isJwtMode, publishRelayUrl, subscribeRelayUrl } from "@/lib/relay-token";
 import { logout } from "../auth-actions";
 import { PresenceBadge } from "../presence-badge";
+import { LiveRecorder } from "../publish/live-recorder";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
       </div>
       <p className="mt-1 text-sm text-neutral-500">{session.user.email}</p>
 
+      {stream && <LiveRecorder name={stream.broadcastName} url={presenceUrl} />}
       {stream ? (
         <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-900/50 p-5">
           <div className="flex items-center justify-between gap-3">
