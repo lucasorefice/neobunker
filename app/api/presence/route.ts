@@ -4,6 +4,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { streams } from "@/lib/schema";
 import { nextLiveStartedAt } from "@/lib/live-state";
+import { openSession, closeSession } from "@/lib/sessions";
+import { dbSessionRepo } from "@/lib/session-repo";
 
 // Records broadcaster-driven live/offline transitions (owner-only).
 //   POST { kind: "live" | "offline", name }
@@ -34,7 +36,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const next = nextLiveStartedAt(owned.liveStartedAt ?? null, kind, new Date());
+  const now = new Date();
+  const next = nextLiveStartedAt(owned.liveStartedAt ?? null, kind, now);
   await db.update(streams).set({ liveStartedAt: next }).where(eq(streams.id, owned.id));
+  if (kind === "live") await openSession(dbSessionRepo, owned.id, now);
+  else await closeSession(dbSessionRepo, owned.id, now);
   return NextResponse.json({ ok: true, liveStartedAt: next });
 }

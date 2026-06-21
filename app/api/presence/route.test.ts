@@ -2,7 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock @/auth and @/lib/db before importing the route.
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: { query: { streams: { findFirst: vi.fn() } }, update: vi.fn() } }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    query: {
+      streams: { findFirst: vi.fn() },
+      sessions: { findFirst: vi.fn() },
+    },
+    update: vi.fn(),
+    insert: vi.fn(),
+  },
+}));
 
 // Import after mocks are set up.
 import { POST } from "./route";
@@ -12,15 +21,20 @@ import { db } from "@/lib/db";
 // Typed helpers.
 const mockAuth = auth as ReturnType<typeof vi.fn>;
 const mockFindFirst = db.query.streams.findFirst as ReturnType<typeof vi.fn>;
+const mockSessionsFindFirst = db.query.sessions.findFirst as ReturnType<typeof vi.fn>;
 const mockUpdate = db.update as ReturnType<typeof vi.fn>;
+const mockInsert = db.insert as ReturnType<typeof vi.fn>;
 
-// Capture the arg passed to .set() so tests can assert on it.
+// Capture the arg passed to .set() on the FIRST update call (streams update).
+// Subsequent update calls (sessions close) do not overwrite capturedSetArg.
 let capturedSetArg: unknown = undefined;
+let updateCallCount = 0;
 
 function makeUpdateChain() {
   return {
     set: vi.fn((arg: unknown) => {
-      capturedSetArg = arg;
+      updateCallCount++;
+      if (updateCallCount === 1) capturedSetArg = arg;
       return { where: vi.fn(() => Promise.resolve(undefined)) };
     }),
   };
@@ -37,6 +51,11 @@ function makeRequest(body: unknown) {
 beforeEach(() => {
   vi.clearAllMocks();
   capturedSetArg = undefined;
+  updateCallCount = 0;
+  // sessions.findFirst returns undefined by default (no open session).
+  mockSessionsFindFirst.mockResolvedValue(undefined);
+  // insert chain: insert(...).values(...) => Promise.resolve.
+  mockInsert.mockReturnValue({ values: vi.fn(() => Promise.resolve(undefined)) });
   mockUpdate.mockReturnValue(makeUpdateChain());
 });
 
