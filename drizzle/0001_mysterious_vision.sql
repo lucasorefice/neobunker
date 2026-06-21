@@ -1,0 +1,1 @@
+ALTER TABLE "streams" ADD COLUMN "live_started_at" timestamp with time zone;
