@@ -56,6 +56,14 @@ export default function Home() {
           to manage your stream.
         </p>
 
+        <p className="mt-2 text-sm text-neutral-500">
+          Or{" "}
+          <a href="/browse" className="text-neutral-300 underline hover:text-white">
+            Browse live streams
+          </a>
+          .
+        </p>
+
         <p className="mt-10 font-mono text-xs text-neutral-600">relay: {RELAY_URL}</p>
       </div>
     </main>
