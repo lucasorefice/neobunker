@@ -1,116 +1,111 @@
 # Phase 4 — OBS ingest (`obs-moq`)
 
-Stream into neobunker from **OBS Studio** instead of the browser webcam page, so
-a broadcaster gets scenes, overlays, and hardware encoding. OBS publishes to the
-same relay the browser player watches: `OBS → moq-relay → viewers`.
+Stream into neobunker from **OBS Studio** (scenes, overlays, hardware encoding)
+instead of the browser webcam page. OBS publishes to the same relay the browser
+player watches: `OBS → moq-relay → viewers`.
 
-> **Docs-only / prep.** This guide is distilled from the upstream
-> [`moq-dev/obs`](https://github.com/moq-dev/obs) README — it can't be verified
-> here (building OBS + the plugin happens on your machine). Treat versions as
-> moving targets and pin commits.
+> Verified on CachyOS/Arch (OBS 32.1.2). The exact package names differ per
+> distro, but the flow is the same.
 
-## Heads-up before you start
+## You do NOT need the OBS fork
 
-- **You must build a fork of OBS from source.** The MoQ output only shows up in
-  a patched OBS UI ([`brianmed/obs-studio`](https://github.com/brianmed/obs-studio)),
-  plus the [`moq-dev/obs`](https://github.com/moq-dev/obs) plugin. Budget time.
-  There's **no prebuilt binary / Homebrew cask** for the plugin yet (the moq tap
-  ships only CLI tools: `moq-cli`, `moq-relay`, `moq-token-cli`, …).
-- **Codecs:** the plugin output currently supports **H.264 + AAC** only — *not*
-  Opus. That differs from neobunker's browser publish path (H.264 + Opus). The
-  `@moq/watch` player decodes AAC natively, so playback is fine; just note the
-  prototype's "H.264 + Opus" locked decision doesn't hold for the OBS path yet.
+The upstream README says to build a fork of OBS "to show MoQ in the UI." In
+practice that's only needed for the Settings → Stream **Service** dropdown.
+Stock OBS loads the plugin fine, and the plugin ships a **"MoQ" dock** with a
+**Go Live** button that publishes directly — which is the path that works. So:
+**build only the plugin, use the dock.**
 
-## 1. Build & install the plugin
+## 1. Build the plugin
 
-Prereqs: CMake 3.20+ (3.28+ on Ubuntu), a C++ compiler, and OBS dev libraries.
-On Ubuntu 24.04 also: `ninja-build`, `pkg-config`, `build-essential`.
+Prereqs (besides stock OBS, which provides `libobs`): `cmake`, `rust`/`cargo`,
+`just`, and a **real `ninja` binary** (a shell alias won't do — CMake's
+subprocess needs it on `PATH`).
 
 ```bash
-# Clone the plugin and the OBS fork (pin to known-good commits for repeatability).
-git clone https://github.com/moq-dev/obs.git moq-obs
-git clone https://github.com/brianmed/obs-studio.git obs-studio
+# Arch/CachyOS:
+sudo pacman -S --needed cmake rust just ninja
+# Debian/Ubuntu: sudo apt install -y cmake cargo just ninja-build  (+ obs-studio dev libs)
 
-# Build the OBS fork (swap "macos" for your platform's preset, e.g. "linux"/"windows").
-cd obs-studio
-cmake --preset macos
-cmake --build --preset macos
-cd ..
-
-# Configure + build the plugin.
+git clone --depth 1 https://github.com/moq-dev/obs.git moq-obs
 cd moq-obs
-just setup          # or: just setup ../moq   (for local moq development)
-just build
+just setup "" ubuntu-x86_64      # Linux preset; auto-detect also works
+just build ubuntu-x86_64
 ```
 
-Install the built plugin:
+Produces `build_x86_64/obs-moq.so`.
+
+## 2. Install into OBS (user plugin dir)
 
 ```bash
-# macOS: copies the .plugin into the OBS fork app and launches it
-just run
-
-# Linux: copy the .so into your OBS plugins dir
-cp build_x86_64/obs-moq.so \
-   ~/.config/obs-studio/plugins/obs-moq/bin/64bit/obs-moq.so
+P=~/.config/obs-studio/plugins/obs-moq
+mkdir -p "$P/bin/64bit" "$P/data"
+cp build_x86_64/obs-moq.so "$P/bin/64bit/"
+cp -r build_x86_64/rundir/RelWithDebInfo/obs-moq/* "$P/data/"
+ldd "$P/bin/64bit/obs-moq.so" | grep "not found"   # should print nothing
 ```
 
-## 2. Configure the stream in OBS
+Confirm it loads: OBS log (`~/.config/obs-studio/logs/`) shows
+`obs_init_module(obs-moq.so)` and `obs-moq.so` under *Loaded Modules*.
 
-1. **Settings → Stream**.
-2. **Service** → **MoQ**.
-3. **Server** → your relay:
-   - Quick test: `https://cdn.moq.dev/anon`
-   - Your self-hosted relay (anon mode): `https://relay.example.com/anon`
-4. **Broadcast name / path** → your stream's `broadcastName` (copy it from
-   neobunker's **/dashboard**, e.g. `phase3-f87a80`). Viewers watch it at
-   `/watch/<broadcastName>`.
-5. **Output → Encoder:** H.264 (`x264` or hardware). **Audio:** AAC.
-6. **Start Streaming.**
+## 3. Trust the relay cert for OBS's MoQ client
 
-Equivalent file-based config (drop into your OBS profile before launch):
+OBS uses its own **Rust** MoQ client for QUIC — Chrome's WebTransport dev flag
+does **not** apply to it. It validates the relay's TLS cert against the **system**
+trust store, so add your mkcert root there:
 
-```jsonc
-// ~/.config/obs-studio/basic/profiles/<Profile>/service.json   (Linux)
-// ~/Library/Application Support/obs-studio/basic/profiles/<Profile>/service.json (macOS)
-{
-  "type": "moq_service",
-  "settings": {
-    "server": "https://relay.example.com/anon",
-    "use_auth": false,
-    "service": "MoQ",
-    "key": "phase3-f87a80"
-  }
-}
+```bash
+# Arch/CachyOS (p11-kit):
+sudo trust anchor /path/to/rootCA.pem
+# Fedora:  sudo cp rootCA.pem /etc/pki/ca-trust/source/anchors/ && sudo update-ca-trust
+# Debian:  sudo cp rootCA.pem /usr/local/share/ca-certificates/moq.crt && sudo update-ca-certificates
 ```
 
-## 3. With neobunker's JWT relay (Phase 3)
+(For a publicly-trusted relay cert this step is unnecessary.)
 
-In JWT mode the relay rejects untokened connections, so OBS must present a
-**publish token**. Get it from **/dashboard** ("OBS publish URL" — the relay
-origin with `?jwt=<publish token>`), which is scoped to your stream and authed
-to you.
+## 4. Publish via the MoQ dock
 
-- Easiest: use that full token-bearing URL as the OBS **Server** (and connect at
-  the relay **root**, not `/anon`, to match the token's `root:""`).
-- The `service.json` `use_auth` flag is the plugin's auth hook; confirm its exact
-  token field against the current plugin before relying on it.
-- Tokens are **short-lived (~1h)** — regenerate from the dashboard when a stream
-  is rejected.
+1. Open OBS → **Docks → MoQ**.
+2. **Relay URL**: your relay with the publish token, e.g.
+   `https://relay.example.com/live?jwt=<publish-token>`. In JWT mode, copy this
+   from the broadcaster **/dashboard** ("OBS publish URL"); in anon mode use
+   `https://relay.example.com/anon`.
+3. **Broadcast name**: your stream's name (e.g. `alice-7f3a9c.hang`).
+4. Add a source to your scene, then click **Go Live**. Watch the status line
+   under the button.
 
-**Recommended bring-up order:** validate the whole OBS pipeline against the
-**anon** relay first (no tokens), then switch the relay to JWT mode and repoint
-OBS at the token URL.
+> Ignore **Settings → Stream** — stock OBS resets it to `rtmp_custom`. The dock
+> runs its own output independently; that reset is harmless. The dock remembers
+> its fields in `~/.config/obs-studio/plugin_config/obs-moq/dock.json`.
 
-## Acceptance
+## 5. Codec & quality — Settings → Output
 
-Start streaming from OBS to `<broadcastName>`, then open
-`/watch/<broadcastName>` in a browser — the OBS feed plays, and the page shows
-**● LIVE**.
+The dock builds its encoder from the profile's **Output** settings (it forces
+MoQ-friendly `repeat_headers` + no B-frames automatically). Use **Output Mode =
+Advanced**:
 
-## Caveats / TODOs
+- **Video Encoder**: **H.264** for broad browser support — QuickSync H.264
+  (hardware) or x264 (software). The plugin also advertises HEVC/AV1, but not all
+  browsers decode those via WebCodecs.
+- **Keyframe Interval**: **1–2 s** (not 0/auto) — key for low-latency join/recovery.
+- **Rate Control** CBR, **Bitrate** to taste (≈2.5–6 Mbps @ 720p).
+- **Audio**: AAC works out of the box. For **Opus** (H.264+Opus, the plan's
+  codecs), the Settings dropdown won't list it — it's filtered by the
+  `rtmp_custom` service — so set it directly in the profile's `basic.ini`:
+  `[AdvOut] AudioEncoder=ffmpeg_opus` (with OBS closed), then Go Live.
 
-- **Opus in the OBS output** — not supported yet (AAC only). Track upstream.
-- **OBS fork required** — upstream OBS doesn't surface the MoQ service yet; the
-  `brianmed/obs-studio` fork is a stopgap.
-- **Pin commits** — both repos move fast; record the commits you built from.
-- **Linux `just run`** — upstream hasn't wired it; use the manual `cp` above.
+Re-click **Go Live** after any Output change (the encoder is built at start).
+
+## 6. Verify
+
+Open `https://relay-app/watch/<broadcast-name>` (with WebTransport Developer Mode
+enabled in Chrome for true QUIC, else the WebSocket fallback) → your OBS scene
+plays, **● LIVE**.
+
+## Gotchas
+
+- **No fork needed** — stock OBS + the plugin + the MoQ dock is the working path.
+- **`ninja` must be a binary**, not a shell alias, or the CMake configure fails.
+- **OBS QUIC cert** is validated against the system trust store (step 3), separate
+  from the browser's trust.
+- **H.264** is the safe codec for the `@moq/watch` player; HEVC/AV1 may not decode
+  in all browsers. AV1 *software* encoding is also very CPU-heavy for real time.
