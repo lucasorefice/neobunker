@@ -15,7 +15,10 @@ export function ViewerCount({
 }) {
   const { count } = useViewerPresence(name, url, { announce });
   return (
-    <span className={`inline-flex items-center gap-1 text-xs text-neutral-400 ${className ?? ""}`}>
+    <span
+      aria-label={`${count} watching`}
+      className={`inline-flex items-center gap-1 text-xs text-neutral-400 ${className ?? ""}`}
+    >
       <span aria-hidden>👁</span>
       {count}
     </span>

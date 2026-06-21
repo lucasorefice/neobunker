@@ -16,3 +16,12 @@ test("counts only paths under <name>/viewers/", () => {
 test("zero when nobody is watching", () => {
   expect(countViewers(["room/alice.hang"], name)).toBe(0);
 });
+
+test("counts each viewer path once even if repeated", () => {
+  const announced = [
+    "room/alice.hang/viewers/aaa",
+    "room/alice.hang/viewers/aaa",
+    "room/alice.hang/viewers/bbb",
+  ];
+  expect(countViewers(announced, name)).toBe(2);
+});
