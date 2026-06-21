@@ -4,6 +4,7 @@ import { streams } from "@/lib/schema";
 import { subscribeRelayUrl } from "@/lib/relay-token";
 import { PresenceBadge } from "@/app/presence-badge";
 import { ViewerCount } from "@/app/viewer-count";
+import { VodList } from "@/app/vod-list";
 
 export default async function BrowsePage() {
   const all = await db.query.streams.findMany();
@@ -37,6 +38,7 @@ export default async function BrowsePage() {
                 </div>
               </div>
               <p className="mt-1 font-mono text-xs text-neutral-500">{stream.broadcastName}</p>
+              <VodList streamId={stream.id} />
             </li>
           ))}
         </ul>
