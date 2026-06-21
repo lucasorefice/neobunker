@@ -27,9 +27,14 @@ export function PublishRecorder({
 
   useEffect(() => {
     let stream: MediaStream | undefined;
+    let cancelled = false;
     if (status === "live" && !recorder.current) {
       (async () => {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         const rec = new MediaRecorder(stream, { mimeType: "video/webm" });
         chunks.current = [];
         startedAt.current = Date.now();
@@ -43,16 +48,24 @@ export function PublishRecorder({
           fd.set("sessionId", sessionId.current);
           fd.set("durationMs", String(Date.now() - startedAt.current));
           fd.set("offsetMs", "0"); // record-start ≈ go-live for the browser path
-          await fetch("/api/vod/upload", { method: "POST", body: fd });
+          try {
+            await fetch("/api/vod/upload", { method: "POST", body: fd });
+          } catch (e) {
+            console.warn("Upload failed:", e);
+          }
         };
         rec.start();
         recorder.current = rec;
       })();
     }
     if (status !== "live" && recorder.current) {
+      cancelled = true;
       recorder.current.stop();
       recorder.current = null;
     }
+    return () => {
+      cancelled = true;
+    };
   }, [status]);
 
   // Stop recording and tracks on unmount
