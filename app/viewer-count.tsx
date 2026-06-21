@@ -1,6 +1,7 @@
 "use client";
 
 import { useViewerPresence } from "@/lib/use-viewer-presence";
+import { ViewerCountView } from "@/app/presence-views";
 
 export function ViewerCount({
   name,
@@ -14,13 +15,5 @@ export function ViewerCount({
   className?: string;
 }) {
   const { count } = useViewerPresence(name, url, { announce });
-  return (
-    <span
-      aria-label={`${count} watching`}
-      className={`inline-flex items-center gap-1 text-xs text-neutral-400 ${className ?? ""}`}
-    >
-      <span aria-hidden>👁</span>
-      {count}
-    </span>
-  );
+  return <ViewerCountView count={count} className={className} />;
 }
