@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import PublishClient from "./publish-client";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { streams } from "@/lib/schema";
+import { sessions, streams } from "@/lib/schema";
 import { DEFAULT_BROADCAST_NAME, RELAY_URL } from "@/lib/relay";
 import { isJwtMode, publishRelayUrl, subscribeRelayUrl } from "@/lib/relay-token";
 import { LiveRecorder } from "./live-recorder";
+import { PublishRecorder } from "./recorder";
 
 // Phase 0 stand-in for OBS: broadcast the webcam from the browser.
 // - Anon mode: any ?name works (handy for quick tests).
@@ -21,6 +22,7 @@ export default async function PublishPage({
   const { name } = await searchParams;
 
   let broadcastName: string;
+  let openSessionId: string | undefined;
   if (isJwtMode()) {
     const session = await auth();
     if (!session?.user?.id) redirect("/login");
@@ -29,6 +31,11 @@ export default async function PublishPage({
     });
     if (!stream) redirect("/dashboard");
     broadcastName = stream.broadcastName;
+    // Find the currently-open session for this stream (endedAt IS NULL).
+    const openSession = await db.query.sessions.findFirst({
+      where: and(eq(sessions.streamId, stream.id), isNull(sessions.endedAt)),
+    });
+    openSessionId = openSession?.id;
   } else {
     broadcastName = name?.trim() || DEFAULT_BROADCAST_NAME;
   }
@@ -51,6 +58,13 @@ export default async function PublishPage({
 
       <PublishClient url={url} name={broadcastName} />
       {isJwtMode() && <LiveRecorder name={broadcastName} url={presenceUrl} />}
+      {isJwtMode() && (
+        <PublishRecorder
+          name={broadcastName}
+          url={presenceUrl}
+          targetSessionId={openSessionId}
+        />
+      )}
 
       <p className="mx-auto mt-4 w-full max-w-2xl text-sm text-neutral-500">
         Allow camera access, then open the{" "}
