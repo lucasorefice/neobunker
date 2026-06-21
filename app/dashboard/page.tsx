@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { streams } from "@/lib/schema";
+import { sessions, streams } from "@/lib/schema";
 import { RELAY_URL } from "@/lib/relay";
 import { isJwtMode, publishRelayUrl, subscribeRelayUrl } from "@/lib/relay-token";
+import { pickUploadTargetSession } from "@/lib/vod-store";
 import { logout } from "../auth-actions";
 import { PresenceBadge } from "../presence-badge";
 import { LiveDuration } from "../live-duration";
@@ -18,6 +19,15 @@ export default async function DashboardPage() {
   const stream = await db.query.streams.findFirst({
     where: eq(streams.ownerUserId, session.user.id),
   });
+
+  // Find the most-recent ended session to offer an upload target.
+  const ownerSessions = stream
+    ? await db
+        .select({ id: sessions.id, endedAt: sessions.endedAt })
+        .from(sessions)
+        .where(eq(sessions.streamId, stream.id))
+    : [];
+  const uploadTargetId = pickUploadTargetSession(ownerSessions);
 
   const watchHref = stream
     ? `/watch/${stream.broadcastName.split("/").map(encodeURIComponent).join("/")}`
@@ -99,6 +109,61 @@ export default async function DashboardPage() {
         <p className="mt-8 text-neutral-400">
           No stream provisioned for this account.
         </p>
+      )}
+
+      {uploadTargetId && (
+        <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-900/50 p-5">
+          <h2 className="text-lg font-medium">Upload OBS recording for your last stream</h2>
+          <p className="mt-1 text-sm text-neutral-400">
+            Session <span className="font-mono text-neutral-300">{uploadTargetId}</span>
+          </p>
+          <form
+            method="post"
+            action="/api/vod/upload"
+            encType="multipart/form-data"
+            className="mt-4 flex flex-col gap-3"
+          >
+            <input type="hidden" name="sessionId" value={uploadTargetId} />
+            <label className="flex flex-col gap-1">
+              <span className="text-sm text-neutral-400">Recording file (.mp4 or .webm)</span>
+              <input
+                type="file"
+                name="file"
+                accept="video/mp4,video/webm"
+                required
+                className="rounded-md border border-neutral-700 bg-neutral-950 p-2 text-sm text-neutral-200 file:mr-3 file:rounded file:border-0 file:bg-neutral-800 file:px-3 file:py-1 file:text-sm file:text-neutral-200"
+              />
+            </label>
+            <div className="flex gap-4">
+              <label className="flex flex-1 flex-col gap-1">
+                <span className="text-sm text-neutral-400">Offset (ms, optional)</span>
+                <input
+                  type="number"
+                  name="offsetMs"
+                  defaultValue={0}
+                  min={0}
+                  className="rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-200"
+                />
+              </label>
+              <label className="flex flex-1 flex-col gap-1">
+                <span className="text-sm text-neutral-400">Duration (ms, optional)</span>
+                <input
+                  type="number"
+                  name="durationMs"
+                  min={0}
+                  placeholder="auto"
+                  className="rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-200"
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="self-start rounded-lg bg-white px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-neutral-200"
+            >
+              Upload recording
+            </button>
+          </form>
+        </section>
       )}
     </main>
   );

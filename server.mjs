@@ -1,7 +1,26 @@
 import { createServer as createHttpServer } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
-import { readFileSync } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
+import { stat } from "node:fs/promises";
+import path from "node:path";
 import next from "next";
+
+const VOD_DIR = path.join(process.cwd(), "var", "vod");
+
+/** Serve a file from var/vod/ at /vod-file/<basename>. Returns true if handled. */
+async function handleVodFile(req, res) {
+  if (!req.url?.startsWith("/vod-file/")) return false;
+  const file = path.join(VOD_DIR, path.basename(req.url));
+  try {
+    await stat(file);
+    res.setHeader("content-type", file.endsWith(".webm") ? "video/webm" : "video/mp4");
+    createReadStream(file).pipe(res);
+  } catch {
+    res.statusCode = 404;
+    res.end("not found");
+  }
+  return true;
+}
 import { WebSocketServer } from "ws";
 import {
   resolveOpenSession,
@@ -28,10 +47,16 @@ if (process.env.TLS_CERT && process.env.TLS_KEY) {
       cert: readFileSync(process.env.TLS_CERT),
       key: readFileSync(process.env.TLS_KEY),
     },
-    (req, res) => handle(req, res),
+    async (req, res) => {
+      if (await handleVodFile(req, res)) return;
+      handle(req, res);
+    },
   );
 } else {
-  server = createHttpServer((req, res) => handle(req, res));
+  server = createHttpServer(async (req, res) => {
+    if (await handleVodFile(req, res)) return;
+    handle(req, res);
+  });
 }
 
 const wss = new WebSocketServer({ noServer: true });

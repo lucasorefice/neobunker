@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# VOD recordings (uploaded by broadcasters; never commit)
+/var/
