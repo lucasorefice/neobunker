@@ -4,13 +4,21 @@ import { createReadStream, readFileSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import next from "next";
+import { WebSocketServer } from "ws";
+import {
+  resolveOpenSession,
+  backlog,
+  persist,
+} from "./lib/chat-store.ts";
+import { validateMessage, computeOffsetMs } from "./lib/chat-core.ts";
 
 const VOD_DIR = path.join(process.cwd(), "var", "vod");
 
 /** Serve a file from var/vod/ at /vod-file/<basename>. Returns true if handled. */
 async function handleVodFile(req, res) {
   if (!req.url?.startsWith("/vod-file/")) return false;
-  const file = path.join(VOD_DIR, path.basename(req.url));
+  const pathname = new URL(req.url, "http://localhost").pathname;
+  const file = path.join(VOD_DIR, path.basename(pathname));
   try {
     await stat(file);
     res.setHeader("content-type", file.endsWith(".webm") ? "video/webm" : "video/mp4");
@@ -21,13 +29,6 @@ async function handleVodFile(req, res) {
   }
   return true;
 }
-import { WebSocketServer } from "ws";
-import {
-  resolveOpenSession,
-  backlog,
-  persist,
-} from "./lib/chat-store.ts";
-import { validateMessage, computeOffsetMs } from "./lib/chat-core.ts";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT ?? 3000);
