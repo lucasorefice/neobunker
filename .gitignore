@@ -43,3 +43,6 @@ next-env.d.ts
 
 # VOD recordings (uploaded by broadcasters; never commit)
 /var/
+
+# Superpowers SDD scratch (briefs, reports, diffs, ledger)
+.superpowers/
