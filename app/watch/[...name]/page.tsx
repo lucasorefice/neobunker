@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { WatchStage } from "./watch-stage";
+import { ChatPanel } from "@/app/chat-panel";
 import { PresenceBadge } from "@/app/presence-badge";
 import { ViewerCount } from "@/app/viewer-count";
 import { LiveDuration } from "@/app/live-duration";
@@ -41,7 +42,10 @@ export default async function WatchPage({
         <p className="text-right font-mono text-xs text-neutral-500">{RELAY_URL}</p>
       </div>
 
-      <WatchStage url={url} name={broadcastName} />
+      <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[1fr_20rem]">
+        <WatchStage url={url} name={broadcastName} />
+        <ChatPanel name={broadcastName} />
+      </div>
     </main>
   );
 }
