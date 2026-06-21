@@ -20,6 +20,7 @@ export const streams = pgTable("streams", {
   broadcastName: text("broadcast_name").notNull().unique(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  liveStartedAt: timestamp("live_started_at", { withTimezone: true }),
 });
 
 export type User = typeof users.$inferSelect;
