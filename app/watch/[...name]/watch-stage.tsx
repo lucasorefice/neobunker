@@ -11,7 +11,7 @@ export function WatchStage({ url, name }: { url: string; name: string }) {
   const connecting = status === "connecting" || status === "loading";
 
   return (
-    <div className="relative">
+    <div className="relative mx-auto w-full max-w-5xl">
       <WatchClient url={url} name={name} />
       {!live && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-neutral-950/80 text-center">
