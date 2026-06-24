@@ -8,6 +8,13 @@
 - **Relay endpoint:** `https://draft-14.cloudflare.mediaoverquic.com` — the hostname encodes the draft.
 - **Version is the good case:** Cloudflare runs **draft-14**, and moq.dev states **"moq-lite is forward-compatible with moq-transport draft-14+"**. The `@moq/*` packages here ARE moq-lite, so the interop path is the one they advertise — compatibility is *likely*, not the draft-07 mismatch feared earlier.
 
+## Result (2026-06-24): control-ok ✅
+The `/moq-probe` page reached **`control-ok`** against `https://draft-14.cloudflare.mediaoverquic.com` — the WebTransport session established and Cloudflare's relay returned ANNOUNCE. **The hang/`@moq` (moq-lite, `0.2.x`) stack interoperates with Cloudflare's free draft-14 MoQ CDN out of the box** — no package bump needed for connectivity. This validates Cloudflare's edge relay as the cheap + low-latency MoQ delivery path *on the stack neobunker already ships* (not moqtail/draft-16, which is self-host only).
+
+Next: full `/publish` → `/watch` round-trip through the Cloudflare endpoint to confirm media (not just control plane) flows; then decide auth/namespace for non-anon use.
+
+> Note: a pre-existing `server.mjs` bug (destroyed Next's dev HMR upgrade → no hydration → dead UI) blocked this test until fixed; the fix is on `main`, `feat/moqtail`, and this branch.
+
 ## Still to confirm empirically
 1. **Path/namespace** — try the bare host first (`https://draft-14.cloudflare.mediaoverquic.com`). If it times out, the relay may want a path/namespace segment (cdn.moq.dev uses `/anon`); check Cloudflare's docs for the equivalent.
 2. **Auth** — does publishing need a token? (Subscribing may be open.) How is it passed?
