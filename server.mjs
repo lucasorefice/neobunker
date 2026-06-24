@@ -68,6 +68,11 @@ const rooms = new Map();
 
 await app.prepare();
 
+// Next's own WebSocket upgrades (dev HMR at /_next/...) must reach this handler;
+// destroying them breaks the Turbopack client runtime and blocks hydration.
+// getUpgradeHandler() requires prepare() to have run first.
+const upgradeHandler = app.getUpgradeHandler();
+
 // TLS: if TLS_CERT + TLS_KEY are set (prod LAN with mkcert), use HTTPS; else HTTP (dev).
 let server;
 if (process.env.TLS_CERT && process.env.TLS_KEY) {
@@ -92,11 +97,13 @@ const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
   const { pathname } = new URL(req.url, "http://localhost");
-  if (pathname !== "/chat") {
-    socket.destroy();
+  if (pathname === "/chat") {
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
     return;
   }
-  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+  // Hand every other upgrade (notably Next's dev HMR socket) to Next, so the
+  // Turbopack client runtime can connect and the app hydrates.
+  upgradeHandler(req, socket, head);
 });
 
 wss.on("connection", async (ws, req) => {
