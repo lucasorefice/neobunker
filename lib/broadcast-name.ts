@@ -22,3 +22,17 @@ export function randomSuffix(bytes = 3): string {
 export function candidateBroadcastName(email: string): string {
   return `${slugifyEmail(email)}-${randomSuffix()}.hang`;
 }
+
+// A fresh, unguessable broadcast name — no account/email needed — e.g.
+// "stream-3f9c2a1e8b7d.hang". 12 hex chars = 48 bits of entropy, far beyond
+// guess/scan range on a public anon relay where the name is the only secret.
+export function randomBroadcastName(prefix = "stream"): string {
+  return `${prefix}-${randomBytes(6).toString("hex")}.hang`;
+}
+
+// The viewer URL for a broadcast name. Each path segment is encoded individually
+// so slashes stay as separators — matches the /watch/[...name] route, which
+// decodeURIComponent()s each segment.
+export function watchHref(name: string): string {
+  return `/watch/${name.split("/").map(encodeURIComponent).join("/")}`;
+}
