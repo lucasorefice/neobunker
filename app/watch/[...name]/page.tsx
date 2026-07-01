@@ -19,9 +19,9 @@ export default async function WatchPage({
   const broadcastName = name.map(decodeURIComponent).join("/");
   const url = await subscribeRelayUrl(broadcastName);
   const viewerUrl = await viewerRelayUrl(broadcastName);
-  const stream = await db.query.streams.findFirst({
-    where: eq(streams.broadcastName, broadcastName),
-  });
+  const stream = await db.query.streams
+    .findFirst({ where: eq(streams.broadcastName, broadcastName) })
+    .catch(() => null);
 
   return (
     <main className="min-h-dvh bg-neutral-950 px-4 py-10 text-neutral-100">

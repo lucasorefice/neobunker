@@ -83,9 +83,14 @@ The dock builds its encoder from the profile's **Output** settings (it forces
 MoQ-friendly `repeat_headers` + no B-frames automatically). Use **Output Mode =
 Advanced**:
 
-- **Video Encoder**: **H.264** for broad browser support — QuickSync H.264
-  (hardware) or x264 (software). The plugin also advertises HEVC/AV1, but not all
-  browsers decode those via WebCodecs.
+- **Video Encoder**: **x264 (software) H.264**. Prefer x264 over the hardware
+  encoders — **VAAPI H.264 stalls the browser player**: the `@moq/watch` /
+  WebCodecs decoder decodes the first keyframe (IDR) then freezes on every frame
+  after it (watch page shows ~1 s of video then a frozen frame, no error in the
+  console — just "skipping slow group" spam). x264 produces a clean streaming
+  bitstream that decodes continuously. (QuickSync/QSV is separately broken here:
+  `Failed to write video frame: -11`.) HEVC/AV1 may not decode via WebCodecs, and
+  AV1 software encode is too CPU-heavy for real time.
 - **Keyframe Interval**: **1–2 s** (not 0/auto) — key for low-latency join/recovery.
 - **Rate Control** CBR, **Bitrate** to taste (≈2.5–6 Mbps @ 720p).
 - **Audio**: AAC works out of the box. For **Opus** (H.264+Opus, the plan's
@@ -107,5 +112,17 @@ plays, **● LIVE**.
 - **`ninja` must be a binary**, not a shell alias, or the CMake configure fails.
 - **OBS QUIC cert** is validated against the system trust store (step 3), separate
   from the browser's trust.
+- **x264, not VAAPI** — hardware H.264 (VAAPI) plays the first frame then freezes
+  in the browser (see step 5). Use software x264.
+- **Cloudflare + no IPv6 = OBS stuck "Connecting…" then `MoQ session closed (-34)`.**
+  libmoq (Rust/quinn) resolves the relay's AAAA and tries QUIC over IPv6; if the
+  host has no IPv6 route it fails `NetworkUnreachable`, does **not** fall back to
+  IPv4 for QUIC, tries the WebSocket fallback (Cloudflare returns `forbidden`),
+  then gives up with `-34`. The plugin logs only the number; the real reason is in
+  libmoq's stderr (`journalctl _COMM=obs | grep quinn`). Browsers dodge this via
+  Happy Eyeballs. Fix: force IPv4 for the relay host, e.g.
+  `echo "162.159.207.5 draft-14.cloudflare.mediaoverquic.com" | sudo tee -a /etc/hosts`
+  (re-check the IP with `dig +short A <host>`), or prefer IPv4 system-wide in
+  `/etc/gai.conf`.
 - **H.264** is the safe codec for the `@moq/watch` player; HEVC/AV1 may not decode
   in all browsers. AV1 *software* encoding is also very CPU-heavy for real time.
